@@ -45,17 +45,15 @@ class Gcash_parser(tk.Tk):
         self.log_area = ScrolledText(self.main_win, width=500)
         self.log_area.insert(tk.INSERT,"Please select screenshots to parse..")
         self.log_area.pack(fill=tk.BOTH , expand=True)
-
-
-
     
     
     # Uses tesserocr to print info
     def get_data_from_files(self):
-
+        
         #Ask for screenshot files to parse
         img_files = tkinter.filedialog.askopenfilenames(initialdir='./')
 
+        self.log_area.insert(tk.INSERT,'Selected files: {}\n Starting image recognition'.format(len(img_files)))
         
         # Api is automatically finalized when used in a with-statement (context manager).
         # otherwise api.End() should be explicitly called when it's no longer needed.
@@ -105,11 +103,21 @@ class Gcash_parser(tk.Tk):
                         #Print for debugging
                         self.log_area.insert(tk.INSERT, 'Amount : PHP '+ str(amnt) + '\n')
                         
+                    #If date number exists, Print and store to data
+                    if(len(date_str) > 0):
+                        # Parse string containing date : 
+                        # - remove trailing spaces and commas                      
+                        self.log_area.insert(tk.INSERT, 'Date : ' + date_str + '\n')
+                    
                     #Clean up
                     amnt = -1
                     ref_str = ''
+                    date_str = ''
 
                 self.log_area.insert(tk.INSERT,'\n--------------------------\n')
+                
+            
+        self.log_area.insert(tk.INSERT,'Done! '.format(len(img_files)))
 
                     
 
