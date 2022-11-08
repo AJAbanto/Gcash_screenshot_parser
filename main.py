@@ -105,6 +105,7 @@ class Gcash_parser(tk.Tk):
                         #Print for debugging
                         self.log_area.insert(tk.INSERT, 'Amount : PHP '+ str(amnt) + '\n')
                         
+                    #Clean up
                     amnt = -1
                     ref_str = ''
 
