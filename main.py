@@ -5,7 +5,6 @@ import tkinter.filedialog
 import tkinter.scrolledtext
 from tkinter.scrolledtext import ScrolledText
 from tkinter import ttk
-from turtle import left, width
 from tesserocr import PyTessBaseAPI
 import xlsxwriter
 
@@ -22,6 +21,10 @@ class Gcash_parser(tk.Tk):
         #Make list to lookup month abreviations
         self.months = ['Jan', 'Feb', 'Mar' , 'Apr', 'May', 'Jun', 'Jul', \
                         'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+
+        #List of completely spelled months
+        self.full_months = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', \
+                                'August', 'September', 'October', 'November', 'December']
 
         #Make list to temporarily store the last parse run
         self.last_run = []
@@ -92,24 +95,23 @@ class Gcash_parser(tk.Tk):
 
                 for line in raw_list:
                     #If amount has not been parsed just yet then look for it first
-                    if(not fnd_amt):
+                    if(((line.find('Amount Due PHP') != -1) or \
+                        (line.find('Amount Paid PHP') != -1) or \
+                        (line.find('Total PHP') != -1) ) \
+                        and not fnd_amt):
 
-                        if( (line.find('Amount Due PHP') != -1) or \
-                            (line.find('Amount Paid PHP') != -1) or \
-                            (line.find('Total PHP') != -1)  ):
+                        # Parse string containing figure : 
+                        # - remove trailing spaces and commas 
+                        # - convert to float
+                        amnt = float( line[line.find('PHP') + len('PHP'):].strip().replace(',',''))
 
-                            # Parse string containing figure : 
-                            # - remove trailing spaces and commas 
-                            # - convert to float
-                            amnt = float( line[line.find('PHP') + len('PHP'):].strip().replace(',',''))
+                        #Print for debugging
+                        self.log_area.insert(tk.INSERT, 'Amount : PHP {}'.format(amnt) + '\n')
+                        
+                        #Assert flag
+                        fnd_amt = True
 
-                            #Print for debugging
-                            self.log_area.insert(tk.INSERT, 'Amount : PHP {}'.format(amnt) + '\n')
-                            
-                            #Assert flag
-                            fnd_amt = True
-
-                    elif((line.find('Ref. No.') != -1) and ~fnd_ref):
+                    elif((line.find('Ref. No.') != -1) and  not fnd_ref):
                         # Parse string containing ref. no. : 
                         # - remove trailing spaces and commas                      
                         ref_str = line[line.find('Ref. No.') + len('Ref. No.'): ].strip().replace(' ','')
@@ -118,7 +120,7 @@ class Gcash_parser(tk.Tk):
 
                     else:
                         for month in self.months:
-                            if((line.find(month) != -1) and ~fnd_dat ):
+                            if((line.find(month) != -1) and not fnd_dat ):
                                 date_str = line
                                 # Parse string containing date : 
                                 # - remove trailing spaces and commas                      
@@ -126,7 +128,7 @@ class Gcash_parser(tk.Tk):
                                 fnd_dat = True
                     
                         
-                    if(fnd_dat & fnd_amt and fnd_ref):
+                    if(fnd_dat and fnd_amt and fnd_ref):
                         #Store in last run cache
                         self.last_run.append([date_str, amnt,ref_str])
 
