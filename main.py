@@ -1,5 +1,6 @@
 
 import tkinter as tk
+import tkinter.messagebox
 import tkinter.filedialog
 import tkinter.scrolledtext
 from tkinter.scrolledtext import ScrolledText
@@ -56,6 +57,12 @@ class Gcash_parser(tk.Tk):
 
         #Ask for screenshot files to parse
         img_files = tkinter.filedialog.askopenfilenames(initialdir='./')
+
+        #Send message that no file was selected
+        if(len(img_files) == 0):
+            tkinter.messagebox.showerror('Selection error', 'Error: Files selected')
+            return None
+        
 
         self.log_area.insert(tk.INSERT,'Selected files: {}\n Starting image recognition'.format(len(img_files)))
         
@@ -145,10 +152,15 @@ class Gcash_parser(tk.Tk):
         print('Done')
                         
     def export_last_run(self):
-        output_filename =  tkinter.filedialog.asksaveasfilename( defaultextension='.xlsx')
-        print(output_filename)
+        output_filename =  tkinter.filedialog.asksaveasfilename( initialdir='./', defaultextension=".xlsx")
+        
+        #Send message that no file was selected
+        if(len(output_filename) == 0):
+            tkinter.messagebox.showerror('Selection error', 'Error: No filename input')
+            return None
+            
         # Create a workbook and add a worksheet.
-        workbook = xlsxwriter.Workbook('Test_out.xlsx')
+        workbook = xlsxwriter.Workbook(output_filename)
         worksheet = workbook.add_worksheet()
 
         # Start from the first cell. Rows and columns are zero indexed.
