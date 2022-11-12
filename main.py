@@ -1,4 +1,4 @@
-
+import threading
 import tkinter as tk
 import tkinter.messagebox
 import tkinter.filedialog
@@ -19,12 +19,39 @@ class Gcash_parser(tk.Tk):
         self.geometry('900x500')
 
         #Make list to lookup month abreviations
-        self.months = ['Jan', 'Feb', 'Mar' , 'Apr', 'May', 'Jun', 'Jul', \
-                        'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+        self.months = ['Jan ', 'Feb ', 'Mar ' , 'Apr ', 'May ', 'Jun ', 'Jul ', \
+                        'Aug ', 'Sept ', 'Sep ', 'Oct ', 'Nov ', 'Dec ']
 
         #List of completely spelled months
         self.full_months = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', \
                                 'August', 'September', 'October', 'November', 'December']
+
+        self.mon2num_dict = {
+            'Jan' :         1,
+            'January' :     1,
+            'Feb' :         2,
+            'February' :    2,
+            'Mar' :         3,
+            'March' :       3,
+            'Apr' :         4,
+            'April' :       4,
+            'May':          5,
+            'Jun':          6,
+            'June':         6,
+            'Jul':          7,
+            'July':         7,
+            'Aug':          8,
+            'August':       8,
+            'Sep':          9,
+            'Sept':         9,
+            'September':    9,
+            'Oct':          10,
+            'October':      10,
+            'Nov':          11,
+            'November':     11,
+            'Dec':          12,
+            'December':     12
+        }
 
         #Make list to temporarily store the last parse run
         self.last_run = []
@@ -37,7 +64,7 @@ class Gcash_parser(tk.Tk):
         self.btn_pnl.pack()
 
         self.get_files_btn = ttk.Button(self.btn_pnl,text='Select Files')
-        self.get_files_btn['command'] = self.get_data_from_files
+        self.get_files_btn['command'] = self.multhithread_ocr
         self.get_files_btn.pack(side=tk.TOP ,expand=True)
 
         self.export_to_xlsx_btn = ttk.Button(self.btn_pnl, text='Export to xlsx')
@@ -55,8 +82,11 @@ class Gcash_parser(tk.Tk):
     
     # Uses tesserocr to print info
     def get_data_from_files(self):
-        #Clean last run cache
+        #Clean last run cache and clear log area
+        
         self.last_run = []
+        self.log_area.delete('1.0', tk.END)
+    
 
         #Ask for screenshot files to parse
         img_files = tkinter.filedialog.askopenfilenames(initialdir='./')
@@ -123,14 +153,78 @@ class Gcash_parser(tk.Tk):
                             if((line.find(month) != -1) and not fnd_dat ):
                                 date_str = line
                                 # Parse string containing date : 
-                                # - remove trailing spaces and commas                      
+                                    # - remove trailing spaces and commas 
+                                    # - split string by day , month , year , time
+                                    # - parse timeformat ,  assume time is XX:XX XM
+                                date_list = date_str.split(' ')
+                                mon = date_list[0]
+                                mon_num = self.mon2num_dict[mon]
+                                # Handle error where day and year are concatenated
+                                if(len(date_list[1]) > 2):
+                                    
+                                    day = date_list[1][0:-5].strip()
+                                    yr = date_list[1][-5:-1].strip().replace(',','')
+                                    tm = date_list[2] + ' ' + date_list[3]
+                                else:
+                                    day = int(str(int(date_list[1])).zfill(2))
+                                    yr =  int(date_list[2].replace(',',''))
+                                    tm = date_list[3] + ' ' + date_list[4]
+
+                                #Uncomment to print values for debugging
+                                # print('{}\n Day: {}, Month: {}, Year: {}, Time: {}\n'.format(date_str,day, mon, yr, tm))
+                                
+                                #Get and store numeric date
+                                numeric_date = '{}/{}/{}'.format(day,mon_num,yr)
+                                
+                                #Uncomment to print values for debugging
+                                # print('Numeric date: '+ numeric_date)
+
                                 self.log_area.insert(tk.INSERT, 'Date : {}\n'.format(date_str))
                                 fnd_dat = True
+                        
+                        #If abreviation of month not then seek month in fully spelled 
+                        #Note that in this case the format is completely different
+                        if(not fnd_dat):
+                            for full_month in self.full_months:
+                                if((line.find(full_month) != -1) and not fnd_dat ):
+                                    date_str = line
+
+
+                                    # Parse string containing date : 
+                                    # - remove trailing spaces and commas 
+                                    # - split string by day , month , year , time
+                                    # - parse timeformat , assume XX:XX:XX XM
+                                    date_list = date_str.split(' ')
+                                    day = int(str(int(date_list[0])).zfill(2))
+                                    mon = date_list[1]
+                                    mon_num = self.mon2num_dict[mon]
+                                    yr =  int(date_list[2])
+
+                                    tm_list = date_list[3].split(':')
+                                    tm = tm_list[0] + ':' + tm_list[1]
+                                    tm = tm + ' ' + date_list[4]
+
+                                    #Uncomment to print values for debugging
+                                    # print('{}\n Day: {}, Month: {}, Year: {}, Time: {}\n'.format(date_str,day, mon, yr, tm))
+                                    
+                                    #Get and store numeric date
+                                    numeric_date = '{}/{}/{}'.format(day,mon_num,yr)
+                                    #Uncomment to print values for debugging
+                                    # print('Numeric date: ' + numeric_date)
+
+                                    self.log_area.insert(tk.INSERT, 'Date : {}\n'.format(date_str))
+                                    fnd_dat = True
                     
                         
                     if(fnd_dat and fnd_amt and fnd_ref):
+                        #After all key information is found store in cache for export
+
+                        #Get file name only
+                        img_filename = img.split('/')
+                        img_filename = img_filename[-1]
+
                         #Store in last run cache
-                        self.last_run.append([date_str, amnt,ref_str])
+                        self.last_run.append([ img_filename, numeric_date, tm, ref_str ,amnt])
 
                         #Clean up                    
                         fnd_dat = False
@@ -148,6 +242,7 @@ class Gcash_parser(tk.Tk):
                       
 
                 self.log_area.insert(tk.INSERT,'\n--------------------------\n')
+                self.log_area.see('end')
                 
             
         self.log_area.insert(tk.INSERT,'Done! '.format(len(img_files)))
@@ -169,14 +264,31 @@ class Gcash_parser(tk.Tk):
         row = 0
         col = 0
 
+        #Add headers
+        worksheet.write(row, col, 'File name') 
+        worksheet.write(row, col + 1, 'Date')
+        worksheet.write(row, col + 2, 'Time')
+        worksheet.write(row, col + 3, 'Ref. No.')
+        worksheet.write(row, col + 4, 'Amount')
+
+        #Increment row index
+        row += 1
         # Iterate over the data and write it out row by row.
-        for date, amnt, ref in (self.last_run):
-            worksheet.write(row, col,     date)
-            worksheet.write(row, col + 1, amnt)
-            worksheet.write(row, col + 2, ref)
+        for  filename, date, time, ref, amnt in (self.last_run):
+            worksheet.write(row, col,     filename)
+            worksheet.write(row, col + 1, date)
+            worksheet.write(row, col + 2, time)
+            worksheet.write(row, col + 3, ref)
+            worksheet.write(row, col + 4, amnt)
             row += 1
 
         workbook.close()
+
+    #Use multithreading to prevent process from blocking the main program window
+    def multhithread_ocr(self):
+        #Create new thread for printing
+        t1 = threading.Thread(target=self.get_data_from_files )
+        t1.start()
 
 
 if __name__ == "__main__":
