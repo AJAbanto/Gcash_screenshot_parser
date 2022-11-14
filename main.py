@@ -26,6 +26,7 @@ class Gcash_parser(tk.Tk):
         self.full_months = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', \
                                 'August', 'September', 'October', 'November', 'December']
 
+        #Dictionary to convert months (abbreviated or not) to numeric counterparts
         self.mon2num_dict = {
             'Jan' :         1,
             'January' :     1,
@@ -94,9 +95,15 @@ class Gcash_parser(tk.Tk):
         #Send message that no file was selected
         if(len(img_files) == 0):
             tkinter.messagebox.showerror('Selection error', 'Error: Files selected')
+            #Enable function button again
+            if(self.get_files_btn['state'] != tk.NORMAL):
+                self.get_files_btn['state'] = tk.NORMAL
+
             return None
         
-
+        
+        
+        #Start process
         self.log_area.insert(tk.INSERT,'Selected files: {}\n Starting image recognition'.format(len(img_files)))
         
         # Api is automatically finalized when used in a with-statement (context manager).
@@ -237,8 +244,8 @@ class Gcash_parser(tk.Tk):
                         date_str = '' 
 
                 #Change state of export to xlsx button after first run
-                if(self.export_to_xlsx_btn['state'] != 'normal'):
-                    self.export_to_xlsx_btn['state'] = 'enable'
+                if(self.export_to_xlsx_btn['state'] != tk.NORMAL):
+                    self.export_to_xlsx_btn['state'] = tk.NORMAL
                       
 
                 self.log_area.insert(tk.INSERT,'\n--------------------------\n')
@@ -246,6 +253,12 @@ class Gcash_parser(tk.Tk):
                 
             
         self.log_area.insert(tk.INSERT,'Done! '.format(len(img_files)))
+        
+        #Enable function button again
+        if(self.get_files_btn['state'] != tk.NORMAL):
+            self.get_files_btn['state'] = tk.NORMAL
+
+        
         print('Done')
                         
     def export_last_run(self):
@@ -289,6 +302,9 @@ class Gcash_parser(tk.Tk):
         #Create new thread for printing
         t1 = threading.Thread(target=self.get_data_from_files )
         t1.start()
+
+        #Disable button to prevent users from running while we're parsing
+        self.get_files_btn['state'] = tk.DISABLED
 
 
 if __name__ == "__main__":
