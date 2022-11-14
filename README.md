@@ -12,10 +12,11 @@ Although there are many other ways of obtaining such key information without goi
 
 ### Usage
 To run the tool you may simply run it on the terminal as so:
-'''
+```
 py .\main.py 
-'''
+```
 
+#### GUI
 You should be greeted with the tkinter gui where you can select the screenshot files to parse.
 
 
@@ -28,9 +29,10 @@ After selecting a single/multiple files it will go ahead and parse it. When sati
 ![Output log](./docs/parsed_gui.PNG)
 ![Xlsx output](./docs/xlsx_output.PNG)
 
+Please note that I've sensored my reference numbers for privacy reasons.
 
 ## Dependencies
 This tool relies on the [tesseract OCR engine](https://github.com/tesseract-ocr/tesseract) that for the actual Optical Character recognition . I used [this](https://github.com/sirfz/tesserocr) python wrapper in particular for tesseract. Lastly xlsxwriter was used to export things to .xlsx for use with excel.
 
 ## Change log
-- 11/14/2022 : Initial release
+- 11/14/2022 : Initial release and minor bug fixes
