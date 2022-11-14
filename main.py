@@ -261,9 +261,7 @@ class Gcash_parser(tk.Tk):
                         ref_str = ''
                         date_str = '' 
 
-                #Change state of export to xlsx button after first run
-                if(self.export_to_xlsx_btn['state'] != tk.NORMAL):
-                    self.export_to_xlsx_btn['state'] = tk.NORMAL
+                
                       
 
                 self.log_area.insert(tk.INSERT,'\n--------------------------\n')
@@ -272,6 +270,11 @@ class Gcash_parser(tk.Tk):
             
         self.log_area.insert(tk.INSERT,'Done! '.format(len(img_files)))
         
+
+        #Change state of export to xlsx button after first run
+        if(self.export_to_xlsx_btn['state'] != tk.NORMAL):
+            self.export_to_xlsx_btn['state'] = tk.NORMAL
+
         #Enable function button again
         if(self.get_files_btn['state'] != tk.NORMAL):
             self.get_files_btn['state'] = tk.NORMAL
