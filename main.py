@@ -1,3 +1,21 @@
+###########################################
+# Project : Gcash screenshot parser
+# Author: Alfred Abanto
+#
+# Description:
+#   Just a small proof of concept 
+#   demonstrating how we can use OCR
+#   (Optical Character Recognition)
+#   to automate obtaining key information
+#   from gcash screenshots, intended
+#   for small businesses
+#
+# License: MIT
+# Date: 14/11/2022
+###########################################
+
+
+
 import threading
 import tkinter as tk
 import tkinter.messagebox
@@ -60,17 +78,17 @@ class Gcash_parser(tk.Tk):
         self.main_win = ttk.Frame(self)
         self.main_win.pack()
 
-        #----------------Buttons for interface--------------
+        #----------------Settup Buttons for interface--------------
         self.btn_pnl = ttk.Frame(self.main_win)
         self.btn_pnl.pack()
 
         self.get_files_btn = ttk.Button(self.btn_pnl,text='Select Files')
         self.get_files_btn['command'] = self.multhithread_ocr
-        self.get_files_btn.pack(side=tk.TOP ,expand=True)
+        self.get_files_btn.grid(row=0, column=0, sticky='W')
 
         self.export_to_xlsx_btn = ttk.Button(self.btn_pnl, text='Export to xlsx')
         self.export_to_xlsx_btn['command'] = self.export_last_run
-        self.export_to_xlsx_btn.pack(side=tk.BOTTOM ,expand=True)
+        self.export_to_xlsx_btn.grid(row=0, column=1, sticky='W')
         self.export_to_xlsx_btn['state'] = 'disable'
 
         #----------------Other Gui elements -----------------
