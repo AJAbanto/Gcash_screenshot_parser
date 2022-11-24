@@ -126,7 +126,7 @@ class Gcash_parser(tk.Tk):
         
         # Api is automatically finalized when used in a with-statement (context manager).
         # otherwise api.End() should be explicitly called when it's no longer needed.
-        with PyTessBaseAPI() as api:
+        with PyTessBaseAPI(path= './data/tessdata') as api:
             for img in img_files:
 
                 #use api to convert recognized text to string of chars
