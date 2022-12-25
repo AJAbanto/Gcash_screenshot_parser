@@ -150,6 +150,8 @@ class Gcash_parser(tk.Tk):
                     #If amount has not been parsed just yet then look for it first
                     if(((line.find('Amount Due PHP') != -1) or \
                         (line.find('Amount Paid PHP') != -1) or \
+                        (line.find('Amount') != -1) or \
+                        (line.find('PHP') != -1) or \
                         (line.find('Total PHP') != -1) ) \
                         and not fnd_amt):
 
@@ -176,9 +178,8 @@ class Gcash_parser(tk.Tk):
                             if((line.find(month) != -1)  and not fnd_dat ):
                                 date_str = line
 
-                                # Parse string using dateutil
+                                # Parse string
                                 try:
-                                
                                     #Try to parse everything using dateutil
                                     str_parsed = parse(date_str,  fuzzy=True)
 
@@ -186,25 +187,24 @@ class Gcash_parser(tk.Tk):
                                     tm = str_parsed.time().strftime("%I:%M %p")
                                     numeric_date = str_parsed.date()
                                 except:
-                                    print("Exception:  {}".format(date_str))
-
                                     #Exception thrown check for errors in OCR
-
                                     #check if day and year have been concatenated
                                     date_list = date_str.split(' ')
                                     if( (len(date_list[1]) > 2) and (len(date_list) < 4)):
-                                        #Assume Error date format will be: %mm %dd%yyyy,%HH%MM
-                                        print(date_list)
-
-                                        date_list = date_str.split(',')
-                                        numeric_date = date_list[0]
-                                        tm = date_list[1]
-                                        print('Error date: \'{}\' time: \'{}\''.format(numeric_date,tm))
+                                        #Assume error date format will be: %mm %dd%yyyy,%HH%MM
+                                        #Reconstruct malformed date string and parse with dateutil
+                                        day_yr_str = '{} {}'.format(date_list[1][0:2] , date_list[1][2:6])
+                                        new_date_str = parse('{} {}'.format(date_list[0], day_yr_str))
+                                       
+                                        #If succesful use datetime methods to extract date/time
+                                        tm = new_date_str.time().strftime("%I:%M %p")
+                                        numeric_date = new_date_str.date()
+                                        #print("Exception resolved: {} {}".format(numeric_date, tm))
                                     else:
+                                        #Unresolved exception, possibly caused by an Add
+                                        print("Exception:  {}".format(date_str))
+                                        print("Exception not resolved")
                                         continue
-
-                                #Uncomment to print values for debugging
-                                # print('Numeric date: '+ numeric_date)
 
                                 self.log_area.insert(tk.INSERT, 'Date : {}\n'.format(numeric_date))
                                 fnd_dat = True
@@ -228,14 +228,19 @@ class Gcash_parser(tk.Tk):
                         #Reset flags
                         amnt = -1
                         ref_str = ''
-                        date_str = '' 
+                        date_str = ''
+                    #Uncomment for debugging
+                    # else:
+                    #     line = line.strip()
+                    #     if(len(line) !=  0):
+                    #         print('Exception read: {}'.format(line))
 
                 
                 self.log_area.insert(tk.INSERT,'\n--------------------------\n')
                 self.log_area.see('end')
                 
             
-        self.log_area.insert(tk.INSERT,'Done! '.format(len(img_files)))
+        self.log_area.insert(tk.INSERT,'Done! Files parsed: {} \n'.format(len(self.last_run)))
         
 
         #Change state of export to xlsx button after first run
@@ -275,14 +280,17 @@ class Gcash_parser(tk.Tk):
         row += 1
         # Iterate over the data and write it out row by row.
         for  filename, date, time, ref, amnt in (self.last_run):
-            worksheet.write(row, col,     filename)
-            worksheet.write(row, col + 1, date)
-            worksheet.write(row, col + 2, time)
-            worksheet.write(row, col + 3, ref)
+            worksheet.write(row, col,     str(filename))
+            worksheet.write(row, col + 1, str(date))
+            worksheet.write(row, col + 2, str(time))
+            worksheet.write(row, col + 3, str(ref))
             worksheet.write(row, col + 4, amnt)
             row += 1
 
         workbook.close()
+
+        self.log_area.insert(tk.INSERT,'Export Done! rows written: {} '.format(row - 1))
+        self.log_area.see('end')
 
     #Use multithreading to prevent process from blocking the main program window
     def multhithread_ocr(self):
