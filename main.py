@@ -25,6 +25,7 @@ from tkinter.scrolledtext import ScrolledText
 from tkinter import ttk
 from tesserocr import PyTessBaseAPI
 import xlsxwriter
+from dateutil.parser import parse
 
 class Gcash_parser(tk.Tk):
     def __init__(self):
@@ -37,12 +38,9 @@ class Gcash_parser(tk.Tk):
         self.geometry('900x500')
 
         #Make list to lookup month abreviations
-        self.months = ['Jan ', 'Feb ', 'Mar ' , 'Apr ', 'May ', 'Jun ', 'Jul ', \
-                        'Aug ', 'Sept ', 'Sep ', 'Oct ', 'Nov ', 'Dec ']
+        self.months = ['Jan', 'Feb', 'Mar' , 'Apr', 'May', 'Jun', 'Jul', \
+                        'Aug', 'Sept', 'Sep', 'Oct', 'Nov', 'Dec']
 
-        #List of completely spelled months
-        self.full_months = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', \
-                                'August', 'September', 'October', 'November', 'December']
 
         #Dictionary to convert months (abbreviated or not) to numeric counterparts
         self.mon2num_dict = {
@@ -175,72 +173,43 @@ class Gcash_parser(tk.Tk):
 
                     else:
                         for month in self.months:
-                            if((line.find(month) != -1) and not fnd_dat ):
+                            if((line.find(month) != -1)  and not fnd_dat ):
                                 date_str = line
-                                # Parse string containing date : 
-                                    # - remove trailing spaces and commas 
-                                    # - split string by day , month , year , time
-                                    # - parse timeformat ,  assume time is XX:XX XM
-                                date_list = date_str.split(' ')
-                                mon = date_list[0]
-                                mon_num = self.mon2num_dict[mon]
-                                # Handle error where day and year are concatenated
-                                if(len(date_list[1]) > 2):
-                                    
-                                    day = date_list[1][0:-5].strip()
-                                    yr = date_list[1][-5:-1].strip().replace(',','')
-                                    tm = date_list[2] + ' ' + date_list[3]
-                                else:
-                                    day = int(str(int(date_list[1])).zfill(2))
-                                    yr =  int(date_list[2].replace(',',''))
-                                    tm = date_list[3] + ' ' + date_list[4]
 
-                                #Uncomment to print values for debugging
-                                # print('{}\n Day: {}, Month: {}, Year: {}, Time: {}\n'.format(date_str,day, mon, yr, tm))
+                                # Parse string using dateutil
+                                try:
                                 
-                                #Get and store numeric date
-                                numeric_date = '{}/{}/{}'.format(day,mon_num,yr)
-                                
+                                    #Try to parse everything using dateutil
+                                    str_parsed = parse(date_str,  fuzzy=True)
+
+                                    #If succesful use datetime methods to extract date/time
+                                    tm = str_parsed.time().strftime("%I:%M %p")
+                                    numeric_date = str_parsed.date()
+                                except:
+                                    print("Exception:  {}".format(date_str))
+
+                                    #Exception thrown check for errors in OCR
+
+                                    #check if day and year have been concatenated
+                                    date_list = date_str.split(' ')
+                                    if( (len(date_list[1]) > 2) and (len(date_list) < 4)):
+                                        #Assume Error date format will be: %mm %dd%yyyy,%HH%MM
+                                        print(date_list)
+
+                                        date_list = date_str.split(',')
+                                        numeric_date = date_list[0]
+                                        tm = date_list[1]
+                                        print('Error date: \'{}\' time: \'{}\''.format(numeric_date,tm))
+                                    else:
+                                        continue
+
                                 #Uncomment to print values for debugging
                                 # print('Numeric date: '+ numeric_date)
 
-                                self.log_area.insert(tk.INSERT, 'Date : {}\n'.format(date_str))
+                                self.log_area.insert(tk.INSERT, 'Date : {}\n'.format(numeric_date))
                                 fnd_dat = True
-                        
-                        #If abreviation of month not then seek month in fully spelled 
-                        #Note that in this case the format is completely different
-                        if(not fnd_dat):
-                            for full_month in self.full_months:
-                                if((line.find(full_month) != -1) and not fnd_dat ):
-                                    date_str = line
+                     
 
-
-                                    # Parse string containing date : 
-                                    # - remove trailing spaces and commas 
-                                    # - split string by day , month , year , time
-                                    # - parse timeformat , assume XX:XX:XX XM
-                                    date_list = date_str.split(' ')
-                                    day = int(str(int(date_list[0])).zfill(2))
-                                    mon = date_list[1]
-                                    mon_num = self.mon2num_dict[mon]
-                                    yr =  int(date_list[2])
-
-                                    tm_list = date_list[3].split(':')
-                                    tm = tm_list[0] + ':' + tm_list[1]
-                                    tm = tm + ' ' + date_list[4]
-
-                                    #Uncomment to print values for debugging
-                                    # print('{}\n Day: {}, Month: {}, Year: {}, Time: {}\n'.format(date_str,day, mon, yr, tm))
-                                    
-                                    #Get and store numeric date
-                                    numeric_date = '{}/{}/{}'.format(day,mon_num,yr)
-                                    #Uncomment to print values for debugging
-                                    # print('Numeric date: ' + numeric_date)
-
-                                    self.log_area.insert(tk.INSERT, 'Date : {}\n'.format(date_str))
-                                    fnd_dat = True
-                    
-                        
                     if(fnd_dat and fnd_amt and fnd_ref):
                         #After all key information is found store in cache for export
 
@@ -262,8 +231,6 @@ class Gcash_parser(tk.Tk):
                         date_str = '' 
 
                 
-                      
-
                 self.log_area.insert(tk.INSERT,'\n--------------------------\n')
                 self.log_area.see('end')
                 
@@ -279,7 +246,6 @@ class Gcash_parser(tk.Tk):
         if(self.get_files_btn['state'] != tk.NORMAL):
             self.get_files_btn['state'] = tk.NORMAL
 
-        
         print('Done')
                         
     def export_last_run(self):

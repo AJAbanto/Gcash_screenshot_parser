@@ -37,6 +37,7 @@ This tool relies on the [tesseract OCR engine](https://github.com/tesseract-ocr/
 ## Change log
 - 11/14/2022 : Initial release and minor bug fixes
 - 11/24/2022 : Pointed path to tessdata to relative path in repo.
+- 12/26/2022 : Started using dateutil parser to guess date formats
 
 ## To do
 - Add better date string processing and error catching
