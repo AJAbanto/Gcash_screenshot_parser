@@ -10,6 +10,9 @@ Although there are many other ways of obtaining such key information without goi
 
 ![This is an image](./docs/use_case_diagram.png)
 
+EDIT: As per some suggestions, I've included a feature that enables this tool to also parse the transaction history PDF that you can 
+request from gcash themselves. This will require the user to enter their password since the PDF sent are usually secure
+
 ### Usage
 To run the tool you may simply run it on the terminal as so:
 ```
@@ -32,7 +35,8 @@ After selecting a single/multiple files it will go ahead and parse it. When sati
 Please note that I've sensored my reference numbers for privacy reasons.
 
 ## Dependencies
-This tool relies on the [tesseract OCR engine](https://github.com/tesseract-ocr/tesseract) that for the actual Optical Character recognition . I used [this](https://github.com/sirfz/tesserocr) python wrapper in particular for tesseract. Its important to note that you need to put this tessdata folder in the ./data since this is where I've pointed the engine to look. Lastly xlsxwriter was used to export things to .xlsx for use with excel.
+This tool relies on the [tesseract OCR engine](https://github.com/tesseract-ocr/tesseract) that for the actual Optical Character recognition . I used [this](https://github.com/sirfz/tesserocr) python wrapper in particular for tesseract. Its important to note that you need to put this tessdata folder in the ./data since this is where I've pointed the engine to look. Lastly xlsxwriter was used to export things to .xlsx for use with excel. Other than this you would need [PyPDF2](https://pypdf2.readthedocs.io/en/stable/) for the
+new PDF reading feature.
 
 ## Change log
 - 11/14/2022 : Initial release and minor bug fixes
