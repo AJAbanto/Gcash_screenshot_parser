@@ -17,6 +17,7 @@
 
 
 import threading
+import re
 import tkinter as tk
 import tkinter.messagebox
 import tkinter.filedialog
@@ -26,6 +27,7 @@ from tkinter import ttk
 from tesserocr import PyTessBaseAPI
 import xlsxwriter
 from dateutil.parser import parse
+from PyPDF2 import PdfReader
 
 class Gcash_parser(tk.Tk):
     def __init__(self):
@@ -80,14 +82,24 @@ class Gcash_parser(tk.Tk):
         self.btn_pnl = ttk.Frame(self.main_win)
         self.btn_pnl.pack()
 
-        self.get_files_btn = ttk.Button(self.btn_pnl,text='Select Files')
+        self.get_files_btn = ttk.Button(self.btn_pnl,text='Select image')
         self.get_files_btn['command'] = self.multhithread_ocr
         self.get_files_btn.grid(row=0, column=0, sticky='W')
 
         self.export_to_xlsx_btn = ttk.Button(self.btn_pnl, text='Export to xlsx')
         self.export_to_xlsx_btn['command'] = self.export_last_run
-        self.export_to_xlsx_btn.grid(row=0, column=1, sticky='W')
+        self.export_to_xlsx_btn.grid(row=0, column=2, sticky='W')
         self.export_to_xlsx_btn['state'] = 'disable'
+
+        self.pw_label = ttk.Label(self.btn_pnl, text="PDF Password")
+        self.pw_label.grid(row=1, column=0,sticky='W')
+
+        self.pw_entry = ttk.Entry(self.btn_pnl,show="*", width=25)
+        self.pw_entry.grid(row=1,column=1,sticky="W")
+
+        self.get_pdf_btn = ttk.Button(self.btn_pnl,text='Select PDF')
+        self.get_pdf_btn['command'] = self.get_data_from_pdf
+        self.get_pdf_btn.grid(row=0, column=1, sticky='W')
 
         #----------------Other Gui elements -----------------
 
@@ -95,8 +107,11 @@ class Gcash_parser(tk.Tk):
         self.log_area = ScrolledText(self.main_win, width=500)
         self.log_area.insert(tk.INSERT,"Please select screenshots to parse..")
         self.log_area.pack(fill=tk.BOTH , expand=True)
-    
-    
+
+        #Password buffer and flag for protected pdfs
+        self.password_buffer = ''
+        self.password_entered = False
+        
     # Uses tesserocr to print info
     def get_data_from_files(self):
         #Clean last run cache and clear log area
@@ -291,6 +306,133 @@ class Gcash_parser(tk.Tk):
 
         self.log_area.insert(tk.INSERT,'Export Done! rows written: {} '.format(row - 1))
         self.log_area.see('end')
+
+    
+    #Get data from pdf
+    def get_data_from_pdf(self):
+
+        self.last_run = []
+        self.log_area.delete('1.0', tk.END)
+
+        #TODO Disable get data from pdf button 
+        try:
+            #Ask for pdf file to parse
+            ENCRYPTED_FILE_PATH = tkinter.filedialog.askopenfilename(initialdir='./')
+        except:
+            tkinter.messagebox.showerror('Selection error', 'Error: No file selected')
+            #Enable function button again
+            if(self.get_files_btn['state'] != tk.NORMAL):
+                self.get_files_btn['state'] = tk.NORMAL
+            
+            return None
+        
+        #ENCRYPTED_FILE_PATH = '.\\transaction_history.pdf'
+        #print(ENCRYPTED_FILE_PATH)
+        with open(ENCRYPTED_FILE_PATH, mode='rb') as f:        
+            reader = PdfReader(f)
+            if reader.is_encrypted:
+                
+                #Get password for encrypted pdf
+                #Attempt to open secure pdf
+                try:
+                    reader.decrypt(self.pw_entry.get())
+                except:
+                    tkinter.messagebox.showerror('Security error', 'Error: Wrong password')
+                    #Enable function button again
+                    if(self.get_files_btn['state'] != tk.NORMAL):
+                        self.get_files_btn['state'] = tk.NORMAL
+
+                    return 0
+                    
+                #Uncomment to test if we opened it correctly by counting pages
+                #print('Number of pages {}'.format(len(reader.pages)))
+
+                reconstructed_lines = []
+
+                for page in reader.pages:
+                    lines = page.extract_text()
+                    lines_parsed = lines.split('\n')
+
+                    #Declare buffer to repair fragmented lines
+                    
+                    is_multiline = False
+                    temp_str = ''
+                    for line in lines_parsed:
+
+                        #If last character on the string is a space assume that it is a fragment
+                        if(line[-1] == ' ' and not is_multiline):
+
+                            #Assert flag and store upper fragment
+                            is_multiline = True
+                            temp_str = line
+                        elif(is_multiline):
+
+                            #Concat lower fragment to upper fragment of the line
+                            temp_str += line
+
+                            #append reconstructed lines
+                            reconstructed_lines.append(temp_str)
+
+                            #De-assert flag 
+                            is_multiline = False
+                        else:
+                            #If line is complete then just append to buffer
+                            reconstructed_lines.append(line)
+                
+                headers = reconstructed_lines[0:4]
+
+                for header in headers:
+                    self.log_area.insert(tk.INSERT,header + '\n')
+
+
+                #Trim headers and final balance, assume strict formatting
+                trans_data = reconstructed_lines[4:-2]
+                
+                #Print transaction data
+                for line in trans_data:
+                    #split line by space
+                    line_list = line.split()
+
+                    date = line_list[0].strip('\t').strip()
+                    time = '{} {}'.format(line_list[1],line_list[2])
+                    #strip the referrence number of any stray strings 
+                    ref_num = line_list[-3]
+                    ref_num = re.sub('[^0-9]','', ref_num)
+
+                    amnt = line_list[-2]
+
+                    data_str = 'Date: {}\t Time: {}\t Ref No.: {}\t Amount: {}\n'.format(date, time, ref_num, amnt)
+                    self.log_area.insert(tk.INSERT,data_str)
+                    self.log_area.see('end')
+
+                    #Get file name only
+                    pdf_filename = ENCRYPTED_FILE_PATH.split('/')
+                    pdf_filename = pdf_filename[-1]
+                    #Store in last run cache
+                    self.last_run.append([ pdf_filename, date, time, ref_num ,amnt])
+
+                    #Enable function button again
+                    if(self.get_pdf_btn['state'] != tk.NORMAL):
+                        self.get_pdf_btn['state'] = tk.NORMAL
+                    
+                    #Change state of export to xlsx button after first run
+                    if(self.export_to_xlsx_btn['state'] != tk.NORMAL):
+                        self.export_to_xlsx_btn['state'] = tk.NORMAL
+
+                    #Clear password
+                    self.pw_entry.delete()
+            
+    
+     #Use multithreading to prevent process from blocking the main program window
+    def multhithread_pdf(self):
+        #Create new thread for printing
+        t2 = threading.Thread(target=self.get_data_from_pdf )
+        t2.start()
+
+        #Disable button to prevent users from running while we're parsing
+        self.get_pdf_btn['state'] = tk.DISABLED
+
+        
 
     #Use multithreading to prevent process from blocking the main program window
     def multhithread_ocr(self):
