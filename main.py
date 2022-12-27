@@ -420,7 +420,7 @@ class Gcash_parser(tk.Tk):
                         self.export_to_xlsx_btn['state'] = tk.NORMAL
 
                     #Clear password
-                    self.pw_entry.delete()
+                    self.pw_entry.delete(0,tk.END)
             
     
      #Use multithreading to prevent process from blocking the main program window
